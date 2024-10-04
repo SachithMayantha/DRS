@@ -1,0 +1,29 @@
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<VBox alignment="CENTER" spacing="15" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.drsystem.controller.PoliceController">
+
+    <Label text="Police Resource Allocation" style="-fx-font-size: 20px;" />
+
+    <GridPane alignment="CENTER" hgap="10" vgap="10">
+
+        <Label text="Number of Policeman:" GridPane.rowIndex="1"/>
+        <TextField fx:id="policemanField" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+        <Label text="Number of Traffic Controllers:" GridPane.rowIndex="2"/>
+        <TextField fx:id="controllerField" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+        <Label text="Number of Investigators:" GridPane.rowIndex="3"/>
+        <TextField fx:id="investigatorField" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+        <Label text="Status:" GridPane.rowIndex="4"/>
+        <ComboBox fx:id="statusComboBox" GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+
+    </GridPane>
+
+    <Button text="Allocate Resources" onAction="#policeResourceAllocation"/>
+</VBox>

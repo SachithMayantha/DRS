@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ComboBox?>
+<?import java.lang.String?>
+<?import javafx.collections.FXCollections?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Button?>
+<GridPane alignment="center" hgap="10" vgap="10" xmlns:fx="http://javafx.com/fxml"
+          fx:controller="com.example.drsystem.controller.DisasterController">
+
+    <Label text="Disaster Type:"/>
+    <ComboBox fx:id="typeComboBox" GridPane.columnIndex="1">
+        <items>
+            <FXCollections fx:factory="observableArrayList">
+                <String fx:value="Earthquake"/>
+                <String fx:value="Flood"/>
+                <String fx:value="Hurricane"/>
+                <String fx:value="Fire"/>
+                <String fx:value="Tornado"/>
+            </FXCollections>
+        </items>
+    </ComboBox>
+
+    <Label text="Location:" GridPane.rowIndex="1"/>
+    <TextField fx:id="locationField" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+    <Label text="Type of Location:" GridPane.rowIndex="2"/>
+    <ComboBox fx:id="locationTypeComboBox" GridPane.columnIndex="1" GridPane.rowIndex="2">
+        <items>
+            <FXCollections fx:factory="observableArrayList">
+                <String fx:value="Urban Area"/>
+                <String fx:value="Rural Area"/>
+                <String fx:value="Industrial Zone"/>
+            </FXCollections>
+        </items>
+    </ComboBox>
+
+    <Label text="Description:" GridPane.rowIndex="3"/>
+    <TextField fx:id="descriptionField" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+    <Label text="Severity:" GridPane.rowIndex="4"/>
+    <ComboBox fx:id="severityComboBox" GridPane.columnIndex="1" GridPane.rowIndex="4">
+        <items>
+            <FXCollections fx:factory="observableArrayList">
+                <String fx:value="Low"/>
+                <String fx:value="Moderate"/>
+                <String fx:value="High"/>
+                <String fx:value="Critical"/>
+                <String fx:value="Severe"/>
+            </FXCollections>
+        </items>
+    </ComboBox>
+
+    <Label text="Date:" GridPane.rowIndex="5"/>
+    <DatePicker fx:id="datePicker" GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+
+    <Label text="Reported By:" GridPane.rowIndex="6"/>
+    <TextField fx:id="reportedByField" GridPane.columnIndex="1" GridPane.rowIndex="6"/>
+
+    <Label text="Upload Image:" GridPane.rowIndex="7"/>
+    <Button text="Choose File" onAction="#handleImageUpload" GridPane.columnIndex="1" GridPane.rowIndex="7"/>
+    <Label fx:id="imageLabel" GridPane.columnIndex="1" GridPane.rowIndex="8"/>
+
+    <Button text="Submit" onAction="#submitDisasterReport" GridPane.columnIndex="1" GridPane.rowIndex="9"/>
+</GridPane>

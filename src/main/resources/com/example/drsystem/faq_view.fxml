@@ -1,0 +1,21 @@
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Button?>
+<VBox alignment="CENTER" spacing="15" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.drsystem.controller.DashboardController">
+
+    <Label text="Frequently Asked Questions" style="-fx-font-size: 24px;" />
+
+    <Label text="Q1: How do I report a disaster?" />
+    <Label text="A: You can report a disaster by clicking the 'Report Disaster' button on your dashboard." />
+
+    <Label text="Q2: How can I view reported disasters?" />
+    <Label text="A: You can view the list of reported disasters by clicking the 'View Disasters' button on your dashboard." />
+
+    <Label text="Q3: What should I do in case of an emergency?" />
+    <Label text="A: In case of an emergency, follow the safety guidelines provided in the disaster report." />
+
+    <!-- Add more questions and answers as needed -->
+
+    <Button text="Back to Dashboard" onAction="#goBackToDashboard"/>
+</VBox>
