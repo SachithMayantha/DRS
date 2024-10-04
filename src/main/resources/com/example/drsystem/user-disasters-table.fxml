@@ -1,0 +1,24 @@
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TableColumn?>
+
+<VBox alignment="CENTER" spacing="20" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.drsystem.controller.DisasterTableController">
+
+    <Label text="Disaster Table" style="-fx-font-size: 24px;"/>
+
+    <TableView fx:id="disasterTable">
+        <columns>
+            <TableColumn text="Disaster ID" fx:id="disasterIdColumn"/>
+            <TableColumn text="Disaster Type" fx:id="disasterTypeColumn"/>
+            <TableColumn text="Location" fx:id="locationColumn"/>
+            <TableColumn text="Location Type" fx:id="locationTypeColumn"/>
+            <TableColumn text="Description" fx:id="descriptionColumn"/>
+            <TableColumn text="Severity" fx:id="severityColumn"/>
+            <TableColumn text="Date" fx:id="dateColumn"/>
+            <TableColumn text="Reported By" fx:id="reportedByColumn"/>
+        </columns>
+    </TableView>
+
+</VBox>

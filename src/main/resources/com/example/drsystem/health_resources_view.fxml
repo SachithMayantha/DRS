@@ -1,0 +1,38 @@
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.collections.FXCollections?>
+<?import java.lang.String?>
+<?import javafx.scene.control.Button?>
+<VBox alignment="CENTER" spacing="15" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.drsystem.controller.DepartmentController">
+
+    <Label text="Health Resource Requests" style="-fx-font-size: 20px;" />
+
+    <GridPane alignment="CENTER" hgap="10" vgap="10">
+        <Label text="Disaster ID:" />
+        <Label fx:id="disasterIdLabel" GridPane.columnIndex="1"/>
+
+        <Label text="Number of Doctors:" GridPane.rowIndex="1"/>
+        <Label fx:id="doctorsLabel" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+        <Label text="Number of Nurses:" GridPane.rowIndex="2"/>
+        <Label fx:id="nursesLabel" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+        <Label text="Number of Ambulances:" GridPane.rowIndex="3"/>
+        <Label fx:id="ambulancesLabel" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+        <Label text="Status:" GridPane.rowIndex="4"/>
+        <ComboBox fx:id="statusComboBox" GridPane.columnIndex="1" GridPane.rowIndex="4">
+            <items>
+                <FXCollections fx:factory="observableArrayList">
+                    <String fx:value="Pending"/>
+                    <String fx:value="Approved"/>
+                </FXCollections>
+            </items>
+        </ComboBox>
+    </GridPane>
+
+    <Button text="Save" onAction="#saveHealthResourceStatus"/>
+</VBox>

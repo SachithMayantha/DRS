@@ -1,0 +1,50 @@
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.GridPane?>
+
+<VBox alignment="CENTER" spacing="15" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.drsystem.controller.DisasterManageController">
+
+    <Label text="Disaster Details" style="-fx-font-size: 24px;" />
+
+    <GridPane alignment="CENTER" hgap="10" vgap="10">
+        <Label text="Disaster ID:" />
+        <Label fx:id="disasterIdLabel" GridPane.columnIndex="1"/>
+
+        <Label text="Disaster Type:" GridPane.rowIndex="1" />
+        <Label fx:id="disasterTypeLabel" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+        <Label text="Location:" GridPane.rowIndex="2" />
+        <Label fx:id="locationLabel" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+        <Label text="Location Type:" GridPane.rowIndex="3" />
+        <Label fx:id="locationTypeLabel" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+        <Label text="Description:" GridPane.rowIndex="4" />
+        <Label fx:id="descriptionLabel" GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+
+        <Label text="Severity:" GridPane.rowIndex="5" />
+        <Label fx:id="severityLabel" GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+
+        <Label text="Date:" GridPane.rowIndex="6" />
+        <Label fx:id="dateLabel" GridPane.columnIndex="1" GridPane.rowIndex="6"/>
+
+        <Label text="Reported By:" GridPane.rowIndex="7" />
+        <Label fx:id="reportedByLabel" GridPane.columnIndex="1" GridPane.rowIndex="7"/>
+
+        <Label text="Priority Number:" GridPane.rowIndex="8" />
+        <Label fx:id="priorityNoLabel" GridPane.columnIndex="1" GridPane.rowIndex="8"/>
+    </GridPane>
+
+
+    <Label text="View Requested Resources" style="-fx-font-size: 20px;" />
+
+    <!-- Buttons for each department -->
+    <HBox alignment="CENTER" spacing="15">
+        <Button text="Health Department" onAction="#showHealthResources"/>
+        <Button text="Fire Emergency" onAction="#showFireResources"/>
+        <Button text="Police Department" onAction="#showPoliceResources"/>
+    </HBox>
+</VBox>

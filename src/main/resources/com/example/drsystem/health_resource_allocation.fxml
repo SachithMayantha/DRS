@@ -1,0 +1,29 @@
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<VBox alignment="CENTER" spacing="15" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.drsystem.controller.HealthController">
+
+    <Label text="Health Resource Allocation" style="-fx-font-size: 20px;" />
+
+    <GridPane alignment="CENTER" hgap="10" vgap="10">
+
+        <Label text="Number of Doctors:" GridPane.rowIndex="1"/>
+        <TextField fx:id="doctorsField" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+        <Label text="Number of Nurses:" GridPane.rowIndex="2"/>
+        <TextField fx:id="nursesField" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+        <Label text="Number of Ambulance:" GridPane.rowIndex="3"/>
+        <TextField fx:id="ambulanceField" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+        <Label text="Status:" GridPane.rowIndex="4"/>
+        <ComboBox fx:id="statusComboBox" GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+
+    </GridPane>
+
+    <Button text="Allocate Resources" onAction="#healthResourceAllocation"/>
+</VBox>

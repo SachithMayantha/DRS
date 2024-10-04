@@ -1,0 +1,27 @@
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.Button?>
+<VBox alignment="CENTER" spacing="20" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.drsystem.controller.DisasterTableController">
+
+    <Label text="Department Dashboard" style="-fx-font-size: 24px;"/>
+
+    <!-- Table for displaying reported disasters -->
+    <TableView fx:id="disasterTable">
+        <columns>
+            <TableColumn text="Disaster ID" fx:id="disasterIdColumn"/>
+            <TableColumn text="Disaster Type" fx:id="disasterTypeColumn"/>
+            <TableColumn text="Location" fx:id="locationColumn"/>
+            <TableColumn text="Location Type" fx:id="locationTypeColumn"/>
+            <TableColumn text="Description" fx:id="descriptionColumn"/>
+            <TableColumn text="Severity" fx:id="severityColumn"/>
+            <TableColumn text="Date" fx:id="dateColumn"/>
+            <TableColumn text="Reported By" fx:id="reportedByColumn"/>
+            <TableColumn text="Priority Number" fx:id="priorityNoColumn"/>
+        </columns>
+    </TableView>
+
+</VBox>
