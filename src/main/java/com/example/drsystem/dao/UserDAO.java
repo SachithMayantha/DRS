@@ -1,6 +1,6 @@
-package com.example.drsystem.model.dao;
+package com.example.drsystem.dao;
 
-import com.example.drsystem.controller.service.*;
+import com.example.drsystem.service.*;
 import com.example.drsystem.DatabaseConnection;
 import com.example.drsystem.model.User;
 
