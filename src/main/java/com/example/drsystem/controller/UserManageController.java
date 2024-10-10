@@ -2,7 +2,7 @@ package com.example.drsystem.controller;
 
 import com.example.drsystem.DrsApplication;
 import com.example.drsystem.model.User;
-import com.example.drsystem.service.UserService;
+import com.example.drsystem.util.ClientSocketManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -16,10 +16,9 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Stage;
-import javafx.concurrent.Task;
 
 import java.io.IOException;
-import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,8 +30,7 @@ public class UserManageController {
 
     @FXML
     private TableColumn<User, String> usernameColumn;
-    
-    
+
     @FXML
     private TableColumn<User, String> userIdColumn;
 
@@ -51,11 +49,13 @@ public class UserManageController {
     @FXML
     private TextField mobileField;
 
-    private UserService userService = new UserService();
+    private ClientSocketManager socketManager;
     private ObservableList<User> usersList = FXCollections.observableArrayList();
 
     @FXML
-    public void initialize() {
+    public void initialize() throws IOException {
+        socketManager = new ClientSocketManager();
+
         // Set up table columns
         userIdColumn.setCellValueFactory(new PropertyValueFactory<>("userId"));
         usernameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
@@ -74,31 +74,17 @@ public class UserManageController {
     }
 
     private void loadUsers() {
-        Task<Void> task = new Task<Void>() {
-            @Override
-            protected Void call() throws Exception {
-                try {
-                    usersList.clear();
-                    usersList.addAll(userService.getAllUsers());
-                } catch (SQLException e) {
-                    showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to load users: " + e.getMessage());
-                }
-                return null;
-            }
-
-            @Override
-            protected void succeeded() {
-                super.succeeded();
-                usersTable.setItems(usersList);
-            }
-
-            @Override
-            protected void failed() {
-                super.failed();
-                showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to load users: " + getException().getMessage());
-            }
-        };
-        new Thread(task).start();
+        try {
+            // Requesting the list of users from the server
+            List<User> users = (List<User>) socketManager.sendRequest("GET_ALL_USERS", (Object) null);
+            usersList.clear();
+            usersList.addAll(users);
+            usersTable.setItems(usersList);
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Connection Error", "Failed to connect to server: " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            showAlert(Alert.AlertType.ERROR, "Data Error", "Failed to load user data: " + e.getMessage());
+        }
     }
 
     private void populateFields(User user) {
@@ -134,27 +120,17 @@ public class UserManageController {
             selectedUser.setEmail(emailField.getText());
             selectedUser.setMobile(mobileField.getText());
 
-            Task<Void> task = new Task<Void>() {
-                @Override
-                protected Void call() throws Exception {
-                    try {
-                        userService.updateUser(selectedUser);
-                    } catch (SQLException e) {
-                        showAlert(Alert.AlertType.ERROR, "Update Failed", "Failed to update user: " + e.getMessage());
-                    }
-                    return null;
-                }
+            try {
+                socketManager.sendRequest("UPDATE_USER", selectedUser);
+                loadUsers();
+                clearFields();
+                showAlert(Alert.AlertType.INFORMATION, "Success", "User updated successfully.");
+            } catch (IOException e) {
+                showAlert(Alert.AlertType.ERROR, "Update Failed", "Failed to update user: " + e.getMessage());
+            } catch (ClassNotFoundException ex) {
+                Logger.getLogger(UserManageController.class.getName()).log(Level.SEVERE, null, ex);
+            }
 
-                @Override
-                protected void succeeded() {
-                    super.succeeded();
-                    loadUsers();
-                    clearFields();
-                    showAlert(Alert.AlertType.INFORMATION, "Success", "User updated successfully.");
-                }
-            };
-
-            new Thread(task).start();
         } else {
             showAlert(Alert.AlertType.WARNING, "No Selection", "Please select a user to update.");
         }
@@ -175,27 +151,17 @@ public class UserManageController {
             Optional<ButtonType> result = confirmationAlert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
                 // User clicked OK, proceed with deletion
-                Task<Void> task = new Task<Void>() {
-                    @Override
-                    protected Void call() throws Exception {
-                        try {
-                            userService.deleteUser(selectedUser.getUserId());
-                        } catch (SQLException e) {
-                            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to delete user: " + e.getMessage());
-                        }
-                        return null;
-                    }
+                try {
+                    socketManager.sendRequest("DELETE_USER", selectedUser.getUserId());
+                    loadUsers(); // Refresh the table
+                    clearFields();
+                    showAlert(Alert.AlertType.INFORMATION, "Success", "User deleted successfully.");
+                } catch (IOException e) {
+                    showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to delete user: " + e.getMessage());
+                } catch (ClassNotFoundException ex) {
+                    Logger.getLogger(UserManageController.class.getName()).log(Level.SEVERE, null, ex);
+                }
 
-                    @Override
-                    protected void succeeded() {
-                        super.succeeded();
-                        loadUsers(); // Refresh the table
-                        clearFields();
-                        showAlert(Alert.AlertType.INFORMATION, "Success", "User deleted successfully.");
-                    }
-                };
-
-                new Thread(task).start();
             }
         } else {
             showAlert(Alert.AlertType.WARNING, "No Selection", "Please select a user to delete.");
@@ -211,7 +177,7 @@ public class UserManageController {
 
     private void clearFields() {
         usernameField.clear();
-        emailField.clear(); 
+        emailField.clear();
         mobileField.clear();
     }
 }

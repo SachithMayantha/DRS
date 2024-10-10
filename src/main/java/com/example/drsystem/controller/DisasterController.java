@@ -1,6 +1,8 @@
 package com.example.drsystem.controller;
 
-import com.example.drsystem.DatabaseConnection;
+import com.example.drsystem.model.User;
+import com.example.drsystem.session.UserSession;
+import com.example.drsystem.util.ClientSocketManager;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -9,108 +11,106 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.sql.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 public class DisasterController {
 
     @FXML
-    private ComboBox<String> typeComboBox;
+    public ComboBox<String> typeComboBox, locationTypeComboBox, severityComboBox;
 
     @FXML
-    private TextField locationField;
+    public TextField locationField;
 
     @FXML
-    private ComboBox<String> locationTypeComboBox;
+    public TextArea descriptionField;
 
     @FXML
-    private TextField descriptionField;
+    public DatePicker datePicker;
 
     @FXML
-    private ComboBox<String> severityComboBox;
+    public Label imageLabel, reportedByLabel; // To display reporting user info
 
     @FXML
-    private DatePicker datePicker;
+    public ImageView imageView;
+
+    public File selectedImageFile;
+
+    public final User loggedInUser = UserSession.getInstance().getLoggedInUser(); // Get logged-in user
+
+    private ClientSocketManager socket;
 
     @FXML
-    private Label imageLabel;
-
-    private File selectedImageFile;
-
-    @FXML
-    private TextField reportedByField;
-
-    private DatabaseConnection databaseConnection;
-
-    public DisasterController() {
-        databaseConnection = new DatabaseConnection();
-    }
-
-    @FXML
-    private void submitDisasterReport(ActionEvent event) {
-        String type = typeComboBox.getValue();
-        String location = locationField.getText();
-        String locationType = locationTypeComboBox.getValue();
-        String description = descriptionField.getText();
-        String severity = severityComboBox.getValue();
-        java.sql.Date date = java.sql.Date.valueOf(datePicker.getValue());
-        String reportedBy = reportedByField.getText();
-
-        if (type == null || location.isEmpty() || description.isEmpty() || severity.isEmpty() || date == null || reportedBy.isEmpty()) {
-            showAlert(Alert.AlertType.ERROR, "Form Error!", "Please fill all fields");
-            return;
-        }
-
-        if (saveDisasterToDatabase(type, location, locationType, description, severity, date, reportedBy)) {
-            showAlert(Alert.AlertType.INFORMATION, "Success!", "Disaster reported successfully");
-            Stage reportStage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            reportStage.close();
+    public void initialize() throws IOException {
+        socket = new ClientSocketManager();
+        if (loggedInUser != null) {
+            System.out.println(loggedInUser.toString());
+            reportedByLabel.setText(loggedInUser.getName() + " (Email: " + loggedInUser.getEmail() + ")");
         } else {
-            showAlert(Alert.AlertType.ERROR, "Error", "Failed to report disaster");
-        }
-    }
-
-    private boolean saveDisasterToDatabase(String type, String location, String locationType, String description,
-                                           String severity, java.sql.Date date, String reportedBy) {
-        //quick and accurate assessment of the reported disasters and providing prioritized number
-        int priorityNo = AssessmentController.assessDisaster(type, locationType,severity);
-
-        String sql = "INSERT INTO disaster (type, location, description, severity, date, reportedBy, locationType, priorityNo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
-        try (Connection conn = databaseConnection.connect();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, type);
-            stmt.setString(2, location);
-            stmt.setString(3, description);
-            stmt.setString(4, severity);
-            stmt.setDate(5, date);
-            stmt.setString(6, reportedBy);
-            stmt.setString(7, locationType);
-            stmt.setInt(8, priorityNo);
-
-            int rowsInserted = stmt.executeUpdate();
-            return rowsInserted > 0; // Return true if at least one row was inserted
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+            reportedByLabel.setText("No user logged in");
         }
     }
 
     @FXML
-    private void handleImageUpload() {
+    public void submitDisasterReport(ActionEvent event) {
+        if (isInputValid()) {
+            String type = typeComboBox.getValue();
+            String location = locationField.getText();
+            String locationType = locationTypeComboBox.getValue();
+            String description = descriptionField.getText();
+            String severity = severityComboBox.getValue();
+            Date date = Date.valueOf(datePicker.getValue());
+            String reportedBy = String.valueOf(loggedInUser.getUserId());
+
+            byte[] imageBytes = selectedImageFile != null ? convertImageToByteArray(selectedImageFile) : null;
+
+            int priorityNo = AssessmentController.assessDisaster(type, locationType, severity);
+            Boolean result;
+            try {
+                result = (Boolean) socket.sendRequest("SAVE_DISASTER", type, location, locationType, description, severity, date, reportedBy, priorityNo, imageBytes);
+                if (result) {
+                    showAlert(Alert.AlertType.INFORMATION, "Success!", "Disaster reported successfully");
+                    ((Stage) ((Node) event.getSource()).getScene().getWindow()).close();
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error", "Failed to report disaster");
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(DisasterController.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (ClassNotFoundException ex) {
+                Logger.getLogger(DisasterController.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+        }
+    }
+
+    @FXML
+    public void handleImageUpload() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select Image");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
 
-        Stage stage = (Stage) imageLabel.getScene().getWindow(); // Get the current window
-        selectedImageFile = fileChooser.showOpenDialog(stage);
+        selectedImageFile = fileChooser.showOpenDialog(imageLabel.getScene().getWindow());
 
         if (selectedImageFile != null) {
             imageLabel.setText(selectedImageFile.getName());
+            imageView.setImage(new Image(selectedImageFile.toURI().toString()));
         }
+    }
+
+    // Helper methods
+    private boolean isInputValid() {
+        if (typeComboBox.getValue() == null || locationField.getText().isEmpty()
+                || descriptionField.getText().isEmpty() || severityComboBox.getValue().isEmpty()
+                || datePicker.getValue() == null) {
+            showAlert(Alert.AlertType.ERROR, "Form Error!", "Please fill all fields");
+            return false;
+        }
+        return true;
     }
 
     private void showAlert(Alert.AlertType alertType, String title, String message) {
@@ -120,4 +120,14 @@ public class DisasterController {
         alert.showAndWait();
     }
 
+    private byte[] convertImageToByteArray(File file) {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] data = new byte[(int) file.length()];
+            fis.read(data);
+            return data;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }
