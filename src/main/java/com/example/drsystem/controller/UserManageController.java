@@ -1,111 +1,201 @@
 package com.example.drsystem.controller;
 
-import com.example.drsystem.DatabaseConnection;
+import com.example.drsystem.DrsApplication;
 import com.example.drsystem.model.User;
+import com.example.drsystem.service.UserService;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.scene.control.Alert;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.stage.Stage;
+import javafx.concurrent.Task;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class UserManageController {
-    @FXML
-    private TableView<User> userTable;
 
     @FXML
-    private TableColumn<User, Integer> idColumn;
+    private TableView<User> usersTable;
 
     @FXML
-    private TableColumn<User, String> nameColumn;
+    private TableColumn<User, String> usernameColumn;
+    
+    
+    @FXML
+    private TableColumn<User, String> userIdColumn;
 
     @FXML
     private TableColumn<User, String> emailColumn;
 
     @FXML
-    private TableColumn<User, String> roleColumn;
-
-    @FXML
     private TableColumn<User, String> mobileColumn;
 
-    private ObservableList<User> userList = FXCollections.observableArrayList();
+    @FXML
+    private TextField usernameField;
 
-    private DatabaseConnection databaseConnection = new DatabaseConnection();
+    @FXML
+    private TextField emailField;
 
+    @FXML
+    private TextField mobileField;
+
+    private UserService userService = new UserService();
+    private ObservableList<User> usersList = FXCollections.observableArrayList();
+
+    @FXML
     public void initialize() {
-        // Set up the columns in the table
-        idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
-        nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+        // Set up table columns
+        userIdColumn.setCellValueFactory(new PropertyValueFactory<>("userId"));
+        usernameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
         emailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
-        roleColumn.setCellValueFactory(new PropertyValueFactory<>("role"));
         mobileColumn.setCellValueFactory(new PropertyValueFactory<>("mobile"));
 
-        // Load data from the database
-        loadDataFromDatabase();
+        // Load initial data into the table
+        loadUsers();
 
-        // Set the items for the TableView
-        userTable.setItems(userList);
+        // Add listener for table row selection
+        usersTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            if (newSelection != null) {
+                populateFields(newSelection);
+            }
+        });
     }
 
-    private void loadDataFromDatabase() {
-        String query = "SELECT * FROM user";
-
-        try (Connection conn = databaseConnection.connect();
-             PreparedStatement statement = conn.prepareStatement(query);
-             ResultSet resultSet = statement.executeQuery()) {
-
-            while (resultSet.next()) {
-                int id = resultSet.getInt("id");
-                String name = resultSet.getString("name");
-                String email = resultSet.getString("email");
-                String role = resultSet.getString("role");
-                String mobile = resultSet.getString("mobile");
-
-                User user = new User(id, name, email, role, mobile);
-                userList.add(user);
+    private void loadUsers() {
+        Task<Void> task = new Task<Void>() {
+            @Override
+            protected Void call() throws Exception {
+                try {
+                    usersList.clear();
+                    usersList.addAll(userService.getAllUsers());
+                } catch (SQLException e) {
+                    showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to load users: " + e.getMessage());
+                }
+                return null;
             }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
+            @Override
+            protected void succeeded() {
+                super.succeeded();
+                usersTable.setItems(usersList);
+            }
+
+            @Override
+            protected void failed() {
+                super.failed();
+                showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to load users: " + getException().getMessage());
+            }
+        };
+        new Thread(task).start();
+    }
+
+    private void populateFields(User user) {
+        usernameField.setText(user.getName());
+        emailField.setText(user.getEmail());
+        mobileField.setText(user.getMobile());
+    }
+
+    @FXML
+    public void addUser() {
+        Parent root;
+        try {
+            root = FXMLLoader.load(getClass().getResource("/com/example/drsystem/registration.fxml"));
+            Stage stage = new Stage();
+            stage.setTitle("User Registration");
+            Scene scene = new Scene(root);
+            stage.setResizable(true);
+            stage.setMinWidth(620);
+            stage.setMinHeight(440);
+            scene.getStylesheets().add(DrsApplication.class.getResource("styles.css").toExternalForm());
+            stage.setScene(scene);
+            stage.show();
+        } catch (IOException ex) {
+            Logger.getLogger(UserManageController.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
     @FXML
-    private void editUser() {
-        User selectedUser = userTable.getSelectionModel().getSelectedItem();
-
+    public void updateUser() {
+        User selectedUser = usersTable.getSelectionModel().getSelectedItem();
         if (selectedUser != null) {
-            // Logic to edit the user
-            // You might open a new window or a form to update the user's details
-            showAlert(Alert.AlertType.INFORMATION, "Edit User", "Edit functionality not implemented.");
+            selectedUser.setName(usernameField.getText());
+            selectedUser.setEmail(emailField.getText());
+            selectedUser.setMobile(mobileField.getText());
+
+            Task<Void> task = new Task<Void>() {
+                @Override
+                protected Void call() throws Exception {
+                    try {
+                        userService.updateUser(selectedUser);
+                    } catch (SQLException e) {
+                        showAlert(Alert.AlertType.ERROR, "Update Failed", "Failed to update user: " + e.getMessage());
+                    }
+                    return null;
+                }
+
+                @Override
+                protected void succeeded() {
+                    super.succeeded();
+                    loadUsers();
+                    clearFields();
+                    showAlert(Alert.AlertType.INFORMATION, "Success", "User updated successfully.");
+                }
+            };
+
+            new Thread(task).start();
         } else {
-            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select a user to edit.");
+            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select a user to update.");
         }
     }
 
     @FXML
-    private void deleteUser() {
-        User selectedUser = userTable.getSelectionModel().getSelectedItem();
-        if (selectedUser != null) {
-            try {
-                Connection conn = databaseConnection.connect();
-                String query = "DELETE FROM user WHERE id = ?";
-                PreparedStatement preparedStatement = conn.prepareStatement(query);
-                preparedStatement.setInt(1, selectedUser.getUserId()
-                );
-                preparedStatement.executeUpdate();
+    public void deleteUser() {
+        User selectedUser = usersTable.getSelectionModel().getSelectedItem();
 
-                userList.remove(selectedUser);
-                showAlert(Alert.AlertType.INFORMATION, "Delete User", "User deleted successfully.");
-            } catch (SQLException e) {
-                e.printStackTrace();
-                showAlert(Alert.AlertType.ERROR, "Error", "Failed to delete user.");
+        if (selectedUser != null) {
+            // Show confirmation dialog
+            Alert confirmationAlert = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmationAlert.setTitle("Confirm Deletion");
+            confirmationAlert.setHeaderText("Are you sure you want to delete this user?");
+            confirmationAlert.setContentText("This action cannot be undone.");
+
+            // Show the alert and wait for a response
+            Optional<ButtonType> result = confirmationAlert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                // User clicked OK, proceed with deletion
+                Task<Void> task = new Task<Void>() {
+                    @Override
+                    protected Void call() throws Exception {
+                        try {
+                            userService.deleteUser(selectedUser.getUserId());
+                        } catch (SQLException e) {
+                            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to delete user: " + e.getMessage());
+                        }
+                        return null;
+                    }
+
+                    @Override
+                    protected void succeeded() {
+                        super.succeeded();
+                        loadUsers(); // Refresh the table
+                        clearFields();
+                        showAlert(Alert.AlertType.INFORMATION, "Success", "User deleted successfully.");
+                    }
+                };
+
+                new Thread(task).start();
             }
         } else {
             showAlert(Alert.AlertType.WARNING, "No Selection", "Please select a user to delete.");
@@ -117,5 +207,11 @@ public class UserManageController {
         alert.setTitle(title);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private void clearFields() {
+        usernameField.clear();
+        emailField.clear(); 
+        mobileField.clear();
     }
 }

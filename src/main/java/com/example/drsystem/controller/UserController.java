@@ -1,9 +1,11 @@
 package com.example.drsystem.controller;
 
-import com.example.drsystem.DatabaseConnection;
+import com.example.drsystem.DrsApplication;
+import com.example.drsystem.service.UserService;
 import com.example.drsystem.model.User;
+import com.example.drsystem.session.UserSession;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -15,10 +17,9 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
+import javafx.fxml.FXML;
+import javafx.scene.control.Label;
 
 public class UserController {
 
@@ -35,52 +36,177 @@ public class UserController {
     private TextField mobileField;
 
     @FXML
-    private ComboBox roleComboBox;
+    private ComboBox<String> roleComboBox;
 
-    private DatabaseConnection databaseConnection;
+    @FXML
+    private ComboBox<String> departmentTypeComboBox;
 
-    static String role;
+    @FXML
+    private Label departmentTypeLabel;
 
-    ResultSet resultSet;
-    User user = new User();
-    public UserController() {
-        databaseConnection = new DatabaseConnection();
+    private UserService userService = new UserService();
+
+    @FXML
+    private void handleRoleSelection() {
+        String selectedRole = roleComboBox.getValue();
+        if ("DEPARTMENT".equals(selectedRole)) {
+            departmentTypeComboBox.setVisible(true);
+            departmentTypeLabel.setVisible(true);
+        } else {
+            departmentTypeComboBox.setVisible(false);
+            departmentTypeLabel.setVisible(false);
+        }
     }
 
     @FXML
-    public boolean login(ActionEvent event) throws SQLException {
+    public void login(ActionEvent event) {
         String email = emailField.getText();
         String password = passwordField.getText();
 
-        if (validateLogin(email, password)) {
+        Task<User> loginTask = new Task<>() {
+            @Override
+            protected User call() throws Exception {
+                return userService.login(email, password);
+            }
+        };
 
-            user.setRole(resultSet.getString("role"));
-            navigateToDashboard(event);
-        } else {
-            showAlert(Alert.AlertType.ERROR, "Login Failed", "Invalid email or password.");
-        }
-        // Logic to authenticate user with the database
-        return true; // Example: return true if authenticated
+        loginTask.setOnSucceeded(e -> {
+            User user = loginTask.getValue();
+            if (user != null) {
+                // Set the user session
+                UserSession.getInstance().setLoggedInUser(user);
+                navigateToDashboard(event, user);
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Login Failed", "Invalid email or password.");
+            }
+        });
+
+        new Thread(loginTask).start();
     }
 
-    private boolean validateLogin(String email, String password) {
-        Connection connection = databaseConnection.connect();
-        String sql = "SELECT * FROM user WHERE email = ? AND password = ?";
-
+    @FXML
+    private void goToRegistration(ActionEvent event) {
         try {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, email);
-            statement.setString(2, password);
-
-            resultSet = statement.executeQuery();
-
-            if (resultSet.next()) {
-                return true; // Login successful
-            }
-        } catch (SQLException e) {
+            Parent root = FXMLLoader.load(getClass().getResource("/com/example/drsystem/registration.fxml"));
+            Stage stage = new Stage();
+            stage.setTitle("User Registration");
+            Scene scene = new Scene(root);
+            stage.setResizable(true);
+            stage.setMinWidth(620);
+            stage.setMinHeight(440);
+            scene.getStylesheets().add(DrsApplication.class.getResource("styles.css").toExternalForm());
+            stage.setScene(scene);
+            stage.show();
+            Stage loginStage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            loginStage.close();
+        } catch (IOException e) {
             e.printStackTrace();
         }
-        return false; // Login failed
+    }
+
+    @FXML
+    public void registerUser(ActionEvent event) {
+        String name = nameField.getText();
+        String email = emailField.getText();
+        String password = passwordField.getText();
+        String mobile = mobileField.getText();
+        String role = roleComboBox.getValue();
+
+        if (name.isEmpty() || email.isEmpty() || password.isEmpty() || mobile.isEmpty() || role.isEmpty()) {
+            showAlert(Alert.AlertType.ERROR, "Form Error!", "Please fill all fields");
+            return;
+        }
+
+        // If the role is DEPARTMENT, check if a department type is selected
+        final String departmentType;
+        if ("DEPARTMENT".equals(role)) {
+            departmentType = departmentTypeComboBox.getValue();
+            if (departmentType == null) {
+                showAlert(Alert.AlertType.ERROR, "Form Error!", "Please select a department type.");
+                return;
+            }
+        } else {
+            departmentType = null;
+        }
+
+        Task<Boolean> registerTask = new Task<>() {
+            @Override
+            protected Boolean call() throws Exception {
+                return userService.registerUser(name, email, password, mobile, role, departmentType);  // Use service layer
+            }
+        };
+
+        registerTask.setOnSucceeded(e -> {
+            if (registerTask.getValue()) {
+                showAlert(Alert.AlertType.INFORMATION, "Registration Success", "Proceed with the login.");
+                navigateToLogin(event);
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Registration Failed", "Failed to register user.");
+            }
+        });
+
+        new Thread(registerTask).start();
+    }
+
+    private void navigateToLogin(ActionEvent event) {
+        User logUser = UserSession.getInstance().getLoggedInUser();
+        if (logUser == null || !logUser.getRole().equals("ADMIN")) {
+                try {
+                    Parent root = FXMLLoader.load(getClass().getResource("/com/example/drsystem/login.fxml"));
+                    Stage stage = new Stage();
+                    stage.setTitle("Login");
+                    Scene scene = new Scene(root);
+                    stage.setResizable(true);
+                    stage.setMinWidth(620);
+                    stage.setMinHeight(440);
+                    scene.getStylesheets().add(DrsApplication.class.getResource("styles.css").toExternalForm());
+                    stage.setScene(scene);
+                    stage.show();
+                    closeWindow(event);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+        }
+    }
+
+    private void navigateToDashboard(ActionEvent event, User user) {
+        try {
+            FXMLLoader loader = new FXMLLoader();
+            Parent root;
+
+            // Load the appropriate dashboard based on user role
+            switch (user.getRole()) {
+                case "ADMIN" ->
+                    loader.setLocation(getClass().getResource("/com/example/drsystem/admin-dashboard.fxml"));
+                case "DEPARTMENT" -> {
+                    setUserSessionDepartment();
+                    loader.setLocation(getClass().getResource("/com/example/drsystem/department-dashboard.fxml"));
+                }
+                default ->
+                    loader.setLocation(getClass().getResource("/com/example/drsystem/user-dashboard.fxml"));
+            }
+            root = loader.load();
+
+            Stage stage = new Stage();
+            stage.setTitle("Dashboard");
+            Scene scene = new Scene(root);
+            stage.setResizable(true);
+            stage.setMinWidth(620);
+            stage.setMinHeight(440);
+            scene.getStylesheets().add(DrsApplication.class.getResource("styles.css").toExternalForm());
+            stage.setScene(scene);
+            stage.show();
+
+            // Close the current login window
+            closeWindow(event);
+        } catch (IOException | SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void closeWindow(ActionEvent event) {
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        stage.close();
     }
 
     private void showAlert(Alert.AlertType alertType, String title, String message) {
@@ -90,111 +216,15 @@ public class UserController {
         alert.showAndWait();
     }
 
-    @FXML
-    private void goToRegistration(ActionEvent event) {
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource("/com/example/drsystem/registration.fxml"));
-            Stage stage = new Stage();
-            stage.setTitle("User Registration");
-            stage.setScene(new Scene(root, 620, 440));
-            stage.show();
-            Stage loginStage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            loginStage.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+    private void setUserSessionDepartment() throws SQLException {
+        int userId = UserSession.getInstance().getLoggedInUser().getUserId();
 
-    @FXML
-    private void registerUser(ActionEvent event) throws IOException {
-        // Get values from input fields
-        String name = nameField.getText();
-        String email = emailField.getText();
-        String password = passwordField.getText();
-        String mobile = mobileField.getText();
-        String role = roleComboBox.getValue().toString();
+        String departmentType = userService.getDepartmentTypeByUserId(userId);
 
-        // Validate inputs
-        if (name.isEmpty() || email.isEmpty() || password.isEmpty() || mobile.isEmpty() || role.isEmpty()) {
-            showAlert(Alert.AlertType.ERROR, "Form Error!", "Please fill all fields");
-            return;
-        }
-
-        // Attempt to save the user to the database
-        if (saveUserToDatabase(name, email, password, mobile, role)) {
-            user.setRole(role);
-            Parent root = FXMLLoader.load(getClass().getResource("/com/example/drsystem/login.fxml"));
-            Stage stage = new Stage();
-            stage.setTitle("User Registration");
-            stage.setScene(new Scene(root, 620, 440));
-            stage.show();
-            Stage loginStage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            loginStage.close();
-
+        if (departmentType != null) {
+            UserSession.setLoggedUserDepartment(departmentType);
         } else {
-            showAlert(Alert.AlertType.ERROR, "Registration Failed", "Failed to register user");
-        }
-    }
-
-    private boolean saveUserToDatabase(String name, String email, String password, String mobile, String role) {
-
-        String userSql = "INSERT INTO user (name, email, password, mobile, role) VALUES (?, ?, ?, ?, ?)";
-
-        PreparedStatement statement;
-        try (Connection conn = databaseConnection.connect()) {
-            statement = conn.prepareStatement(userSql);
-            // Set parameters for the prepared statement
-            statement.setString(1, name);
-            statement.setString(2, email);
-            statement.setString(3, password);
-            statement.setString(4, mobile);
-            statement.setString(5, role);
-
-            // Execute the update
-            int rowsInserted = statement.executeUpdate();
-            if (role.equals("DEPARTMENT")) {
-                String departmentSql = "INSERT INTO department (name, email, mobile) VALUES (?, ?, ?)";
-                statement = conn.prepareStatement(departmentSql);
-
-                statement.setString(1, name);
-                statement.setString(2, email);
-                statement.setString(3, mobile);
-
-                statement.executeUpdate();
-            }
-
-            return rowsInserted > 0; // Return true if at least one row was inserted
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    private void navigateToDashboard(ActionEvent event) {
-        role =user.getRole();
-        try {
-            Parent root;
-            if (user.getRole().equals("ADMIN")){
-                root = FXMLLoader.load(getClass().getResource("/com/example/drsystem/admin-dashboard.fxml"));
-            } else if (user.getRole().equals("DEPARTMENT")) {
-                root = FXMLLoader.load(getClass().getResource("/com/example/drsystem/department-dashboard.fxml"));
-            } else {
-                root = FXMLLoader.load(getClass().getResource("/com/example/drsystem/user-dashboard.fxml"));
-            }
-            Stage stage = new Stage();
-            stage.setTitle("Disaster Response System Dashboard");
-            stage.setScene(new Scene(root, 700, 500)); // Set the desired fixed size
-            stage.setResizable(false); // Make the window size fixed
-            stage.show();
-            Stage loginStage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            loginStage.close();
-
-            // Close the current login window
-            Stage loginStage2 = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            loginStage2.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Failed to set department type for user.");
         }
     }
 
