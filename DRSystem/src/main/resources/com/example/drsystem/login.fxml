@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.VBox?>
+<VBox alignment="CENTER" spacing="10" xmlns:fx="http://javafx.com/fxml"
+
+fx:controller="com.example.drsystem.controller.UserController" styleClass="vbox">
+
+<!-- User Login Title -->
+<Label text="User Login" styleClass="login-title" />
+
+<!-- Login Form -->
+<GridPane alignment="center" hgap="5" vgap="5" styleClass="login-form">
+<Label text="Email:" styleClass="label"/>
+<TextField fx:id="emailField" GridPane.columnIndex="1" styleClass="input-field"/>
+<Label text="Password:" styleClass="label" GridPane.rowIndex="1"/>
+<PasswordField fx:id="passwordField" GridPane.columnIndex="1" GridPane.rowIndex="1" styleClass="input-field"/>
+<Button onAction="#login" text="Login" GridPane.columnIndex="1" GridPane.rowIndex="2" styleClass="button-primary"/>
+<Button onAction="#goToRegistration" text="Register" GridPane.columnIndex="1" GridPane.rowIndex="3" styleClass="button-secondary"/>
+</GridPane>
+</VBox>
+
